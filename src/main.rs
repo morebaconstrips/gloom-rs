@@ -39,7 +39,50 @@ fn offset<T>(n: u32) -> *const c_void {
 
 
 // == // Modify and complete the function below for the first task
-// unsafe fn FUNCTION_NAME(ARGUMENT_NAME: &Vec<f32>, ARGUMENT_NAME: &Vec<u32>) -> u32 { } 
+unsafe fn setVAO(vertices: &Vec<f32>, indices: &Vec<u32>) -> u32 {
+ 
+    //definition of VAO
+    let mut array: u32 = 0;
+    gl::GenVertexArrays(1, &mut array as *mut u32); //nell'array inserisce ID VAO
+    gl::BindVertexArray(array); //binding vertex array
+    //fix vertex attribute pointer
+ 
+ 
+    //definition of vertex buffer object VBO
+    let mut VBO: u32 = 0;
+    gl::GenBuffers(1, &mut VBO as *mut u32);
+  
+    gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
+    gl::BufferData(gl::ARRAY_BUFFER,
+        byte_size_of_array::<f32>(vertices),
+        pointer_to_array(&vertices),
+        gl::STATIC_DRAW,);
+ 
+    gl::VertexAttribPointer(
+        0, // index of the generic vertex attribute ("layout (location = 0)")
+        3, // the number of components per generic vertex attribute (dimensions)
+        gl::FLOAT, // data type
+        gl::FALSE, // normalized (int-to-float conversion)
+        (3 * size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+        std::ptr::null() // offset of the first component
+    );
+    gl::EnableVertexAttribArray(0);
+ 
+     
+    //index buffer
+    let mut index: u32 = 0;
+    gl::GenBuffers(1, &mut index as *mut u32);
+    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, index);
+    gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
+        byte_size_of_array::<u32>(indices),
+        pointer_to_array(&indices),
+        gl::STATIC_DRAW,);
+ 
+    gl::BindVertexArray(array);
+ 
+    return array;
+}
+
 
 fn main() {
     // Set up the necessary objects to deal with windows and event handling
@@ -93,7 +136,12 @@ fn main() {
         }
 
         // == // Set up your VAO here
+        
         unsafe {
+            let vertices: Vec<f32> = vec![-0.6, -0.6, 0.0,0.6, -0.6, 0.0,0.0, 0.6, 0.0];
+            let indices: Vec<u32> = vec![0, 1, 2];
+            let vao: u32 = setVAO(&vertices, &indices);
+            println!("VAO id is: {}", vao);
 
         }
 
@@ -102,12 +150,18 @@ fn main() {
         // The snippet is not enough to do the assignment, and will need to be modified (outside of
         // just using the correct path), but it only needs to be called once
         //
-        //     shader::ShaderBuilder::new()
-        //        .attach_file("./path/to/shader.file")
-        //        .link();
-        unsafe {
+        let shader = unsafe {
+            shader::ShaderBuilder::new()
+            .attach_file("./shaders/simple.vert")
+            .attach_file("./shaders/simple.frag")
+            .link()
+        };
 
+
+        unsafe {
+            shader.activate();
         }
+
 
         // Used to demonstrate keyboard handling -- feel free to remove
         let mut _arbitrary_number = 0.0;
@@ -150,10 +204,11 @@ fn main() {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
                 // Issue the necessary commands to draw your scene here
-
-
-
-
+                gl::DrawElements(gl::TRIANGLES,
+                    3, //count
+                    gl::UNSIGNED_INT, // type
+                    ptr::null(), // first index
+                );
 
             }
 
